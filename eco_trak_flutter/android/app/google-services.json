@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "2977781169",
+    "project_id": "ecotrak-fac7c",
+    "storage_bucket": "ecotrak-fac7c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:2977781169:android:dad2ce544527e0405dd990",
+        "android_client_info": {
+          "package_name": "com.example.eco_trak_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBg7xqgz1vtzqZPUE8Z3ebJ_iQ1AXnG_Bk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

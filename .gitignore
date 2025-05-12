@@ -1,0 +1,23 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Flutter
+ecotrak-android/.dart_tool/
+ecotrak-android/.idea/
+ecotrak-android/.packages
+ecotrak-android/build/
+ecotrak-android/ios/Flutter/Flutter.framework
+ecotrak-android/ios/Flutter/Flutter.podspec
+
+# React/Vue Web App
+ecotrak-admin-panel/node_modules/
+ecotrak-admin-panel/build/
+ecotrak-admin-panel/dist/
+
+# Firebase
+firebase-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
