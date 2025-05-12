@@ -110,5 +110,5 @@ yarn-error.log*
 *.sw?
 
 # Firebase secrets
-src/firebaseConfig.js
+eco_trak_react/src/firebaseConfig.js
 .env
