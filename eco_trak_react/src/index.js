@@ -1,17 +1,23 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import EcoTrakLogin from './pages/ecotrakLogin';
+import EmailVerifiedPage from './pages/EmailVerifiedPage';
+import PasswordResetLanding from './pages/PasswordResetLanding';
+import AdminDashboard from './pages/AdminDashboard';
 import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <Router>
+      <Routes>
+        <Route path="/email-verified-confirmation" element={<EmailVerifiedPage />} />
+        <Route path="/password-reset-landing" element={<PasswordResetLanding />} />
+        <Route path="/login" element={<EcoTrakLogin />} />
+        <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+        <Route path="/" element={<EcoTrakLogin />} />
+      </Routes>
+    </Router>
   </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
