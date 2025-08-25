@@ -1,54 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Edit, Trash2, Plus, Printer, UserPlus, Truck, MapPin, Users, User, X, ChevronDown } from 'lucide-react';
+import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { deleteUser } from 'firebase/auth';
+import { db } from '../../firebaseConfig';
+import AddDriverPage from './AddDriverPage';
+import { Search, Filter, Edit, Trash2, Plus, Printer, UserPlus, Truck, MapPin, Users, User, X, ChevronDown, AlertCircle } from 'lucide-react';
 
-// Sample data matching your design
-const initialDriversData = [
-  {
-    id: '355851',
-    name: 'Kevin Bautista',
-    age: 31,
-    contact: '09570102916',
-    assignedTruck: 'Truck001',
-    assignedRoute: 'Aralar Street, Biliran Street, Avenue Monique',
-    assignedBarangay: 'Bombongan'
-  },
-  {
-    id: '394284',
-    name: 'Ryan Mercado',
-    age: 35,
-    contact: '09258892505',
-    assignedTruck: 'Truck002',
-    assignedRoute: 'Soriano Street, Ramos Boulevard',
-    assignedBarangay: 'San Juan'
-  },
-  {
-    id: '728394',
-    name: 'Carlos Santos',
-    age: 42,
-    contact: '09123456789',
-    assignedTruck: 'Truck003',
-    assignedRoute: 'Aralar Street, Biliran Street',
-    assignedBarangay: 'Bombongan'
-  },
-  {
-    id: '445672',
-    name: 'Maria Garcia',
-    age: 28,
-    contact: '09987654321',
-    assignedTruck: 'Truck004',
-    assignedRoute: 'Main Street, Central Avenue',
-    assignedBarangay: 'San Juan'
-  },
-  {
-    id: '556789',
-    name: 'Jose Dela Cruz',
-    age: 39,
-    contact: '09111222333',
-    assignedTruck: 'Truck005',
-    assignedRoute: 'Coastal Road, Beach Street',
-    assignedBarangay: 'Bombongan'
-  }
-];
+// Remove fallback data - we don't need it anymore
 
 const FilterModal = ({ isOpen, onClose, onApply, filterCriteria, setFilterCriteria, drivers }) => {
   const [tempCriteria, setTempCriteria] = useState(filterCriteria);
@@ -229,17 +186,49 @@ const FilterModal = ({ isOpen, onClose, onApply, filterCriteria, setFilterCriter
 };
 
 const TruckDriverView = () => {
-  const [drivers, setDrivers] = useState(initialDriversData);
-  const [filteredDrivers, setFilteredDrivers] = useState(initialDriversData);
+  const [drivers, setDrivers] = useState([]);
+  const [filteredDrivers, setFilteredDrivers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showAddDriver, setShowAddDriver] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filterCriteria, setFilterCriteria] = useState({
     ageMin: '',
     ageMax: '',
     selectedTrucks: [],
     selectedRoutes: []
   });
+
+  // Fetch drivers from Firestore
+  const fetchDrivers = async () => {
+    try {
+      setLoading(true);
+      const driversRef = collection(db, 'drivers');
+      const snapshot = await getDocs(driversRef);
+      
+      const driversData = snapshot.docs.map(doc => ({
+        id: doc.data().id || doc.id, // Use custom ID if available, fallback to document ID
+        uid: doc.id, // Store document ID for deletion
+        ...doc.data()
+      }));
+
+      setDrivers(driversData);
+      setError('');
+    } catch (error) {
+      console.error('Error fetching drivers:', error);
+      setError('Failed to load drivers from database.');
+      setDrivers([]); // Set empty array instead of fallback data
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch drivers on component mount
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
 
   // Get counts for each barangay
   const getCounts = () => {
@@ -285,7 +274,7 @@ const TruckDriverView = () => {
     if (searchTerm) {
       filtered = filtered.filter(driver =>
         driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        driver.id.includes(searchTerm) ||
+        driver.id.toString().includes(searchTerm) ||
         driver.contact.includes(searchTerm) ||
         driver.assignedTruck.toLowerCase().includes(searchTerm.toLowerCase()) ||
         driver.assignedRoute.toLowerCase().includes(searchTerm.toLowerCase())
@@ -304,17 +293,33 @@ const TruckDriverView = () => {
     // Implement modify functionality
   };
 
-  const handleDelete = (driverId) => {
-    console.log('Delete driver:', driverId);
-    // Implement delete functionality
-    if (window.confirm('Are you sure you want to delete this driver?')) {
+  const handleDelete = async (driverId, driverUid) => {
+    if (!window.confirm('Are you sure you want to delete this driver? This will permanently remove their account.')) {
+      return;
+    }
+
+    try {
+      // Delete from Firestore using UID (document ID)
+      await deleteDoc(doc(db, 'drivers', driverUid));
+      
+      // Update local state using the display ID
       setDrivers(drivers.filter(driver => driver.id !== driverId));
+      
+      console.log('Driver deleted successfully');
+    } catch (error) {
+      console.error('Error deleting driver:', error);
+      alert('Failed to delete driver. Please try again.');
     }
   };
 
   const handleAddDriver = () => {
-    console.log('Add new driver');
-    // Implement add driver functionality
+    setShowAddDriver(true);
+  };
+
+  const handleGoBackToDrivers = () => {
+    setShowAddDriver(false);
+    // Refresh drivers list after adding new driver
+    fetchDrivers();
   };
 
   const handleExport = () => {
@@ -334,8 +339,34 @@ const TruckDriverView = () => {
     setFilterCriteria(criteria);
   };
 
+  // Show Add Driver page
+  if (showAddDriver) {
+    return <AddDriverPage onNavigateBack={handleGoBackToDrivers} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading drivers...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-full">
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+            <p className="text-yellow-800">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -492,6 +523,7 @@ const TruckDriverView = () => {
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Driver Name</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Age</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Contact No.</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Email</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Assigned Truck</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Assigned Route</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Barangay</th>
@@ -509,6 +541,7 @@ const TruckDriverView = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">{driver.age}</td>
                   <td className="px-6 py-4 text-sm text-gray-700 font-mono">{driver.contact}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{driver.email || 'N/A'}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <Truck className="w-4 h-4 text-gray-400 mr-2" />
@@ -543,8 +576,9 @@ const TruckDriverView = () => {
                         Modify
                       </button>
                       <button
-                        onClick={() => handleDelete(driver.id)}
+                        onClick={() => handleDelete(driver.id, driver.uid)}
                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all duration-200"
+                        title="Delete Driver"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -557,13 +591,29 @@ const TruckDriverView = () => {
         </div>
 
         {/* Empty State */}
-        {filteredDrivers.length === 0 && (
+        {filteredDrivers.length === 0 && !loading && (
           <div className="text-center py-16">
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <Search className="w-8 h-8 text-gray-400" />
+              <Users className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">No drivers found</h3>
-            <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+            {drivers.length === 0 ? (
+              <>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No drivers registered yet</h3>
+                <p className="text-gray-500 mb-4">Get started by adding your first driver</p>
+                <button
+                  onClick={handleAddDriver}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add First Driver
+                </button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No drivers found</h3>
+                <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+              </>
+            )}
           </div>
         )}
       </div>

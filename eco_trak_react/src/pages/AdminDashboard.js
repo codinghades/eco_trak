@@ -48,6 +48,7 @@ const AdminDashboard = () => {
             <Routes>
               <Route path="users" element={<BarangayUsersView />} />
               <Route path="trucks" element={<TruckDriverView />} />
+              <Route path="drivers" element={<TruckDriverView />} />
               {/* Add other routes as needed */}
               <Route path="schedule" element={<CollectionScheduleManagement />} />
               <Route path="reports" element={<ReportsComplaintsManagement />} />

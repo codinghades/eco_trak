@@ -3,22 +3,113 @@ import 'package:ecotrak_test/driver/schedule_driver.dart';
 import 'package:ecotrak_test/driver/tracking_driver.dart';
 import 'package:ecotrak_test/driver/notification_driver.dart';
 import 'package:ecotrak_test/driver/history_driver.dart';
+import 'package:ecotrak_test/auth_service.dart';
+// import 'package:ecotrak_test/main.dart'; // Ensure this is imported for AuthWrapper
 
+// The DashboardPageDriver should not return a MaterialApp.
+// It should return a Scaffold and its content.
 class DashboardPageDriver extends StatelessWidget {
   const DashboardPageDriver({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EcoTrak',
-      debugShowCheckedModeBanner: false,
-      home: const HomePage(),
+  // The logout method should be defined here or in a separate service.
+  // This approach keeps it clean and directly callable from the button.
+  Future<void> _handleLogout(BuildContext context) async {
+    try {
+      await AuthService().signOut();
+      // After signOut, the AuthWrapper in main.dart will automatically
+      // detect the change and navigate to the login page.
+      // So, we don't need manual navigation here.
+    } catch (e) {
+      if (!context.mounted) return;
+      // Show error dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('Failed to sign out: ${e.toString()}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  // Helper method for the notification dialog
+  Widget _buildNotificationDialog(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      insetPadding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Notification",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Close", style: TextStyle(color: Colors.green)),
+                ),
+              ],
+            ),
+            const Divider(),
+            _notificationItem("Collection Schedule", "June XX, XX:XX AM is Scheduled for San Juan...", "XX minutes ago"),
+            _notificationItem("Collection Status", "Collection of Garbage has started in Brgy. San Juan", "XX minutes ago"),
+            _notificationItem("Live Tracking", "Garbage Truck is now moving to Brgy. San Juan", "X minutes ago"),
+          ],
+        ),
+      ),
     );
   }
-}
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  Widget _notificationItem(String title, String subtitle, String time) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(color: Colors.black54)),
+        ],
+      ),
+    );
+  }
+
+  Widget _menuButton({required IconData icon, required String label, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: Colors.white)),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,10 +128,10 @@ class HomePage extends StatelessWidget {
                     backgroundImage: AssetImage('assets/images/yoshi.png'),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           "Driver",
                           style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -68,14 +159,36 @@ class HomePage extends StatelessWidget {
                       );
                     },
                   ),
-                  IconButton(                     // PARANG IRRELEVANT NA TONG SETTINGS ICON (?)
-                    icon: const Icon(Icons.settings),
-                    onPressed: () {},
+                  // Logout Button
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Confirm Logout'),
+                          content: const Text('Are you sure you want to sign out?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _handleLogout(context); // This will now work correctly
+                              },
+                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                              child: const Text('Sign Out'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
-
             // Menu Button
             Container(
               color: Colors.green.shade800,
@@ -126,7 +239,6 @@ class HomePage extends StatelessWidget {
                 ],
               ),
             ),
-
             // Main content
             Expanded(
               child: SingleChildScrollView(
@@ -157,7 +269,6 @@ class HomePage extends StatelessWidget {
                       style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
-
                     // Map placeholder
                     Container(
                       height: 160,
@@ -183,7 +294,6 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-
                     // Notification
                     Container(
                       decoration: BoxDecoration(
@@ -191,8 +301,8 @@ class HomePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: const EdgeInsets.all(8),
-                      child: Row(
-                        children: const [
+                      child: const Row(
+                        children: [
                           Icon(Icons.circle, size: 12, color: Colors.green),
                           SizedBox(width: 8),
                           Expanded(
@@ -205,7 +315,6 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     // Reminders
                     const Text(
                       "EcoTrak Reminders",
@@ -222,82 +331,6 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _menuButton({required IconData icon, required String label, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
-  //MESSAGE BOX - BELL ICON WHEN CLICKED
-
-    Widget _buildNotificationDialog(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      insetPadding: const EdgeInsets.all(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Notification",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Close", style: TextStyle(color: Colors.green)),
-                ),
-              ],
-            ),
-            const Divider(),
-
-            // NOTIFICATION MESSAGES - - - PEDE TANGGALIN IF DI RELEVANT SINCE DRIVER SIDE
-            _notificationItem("Collection Schedule", "June XX, XX:XX AM is Scheduled for San Juan...", "XX minutes ago"),
-            _notificationItem("Collection Status", "Collection of Garbage has started in Brgy. San Juan", "XX minutes ago"),
-            _notificationItem("Live Tracking", "Garbage Truck is now moving to Brgy. San Juan", "X minutes ago"),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _notificationItem(String title, String subtitle, String time) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(color: Colors.black54)),
-        ],
       ),
     );
   }
